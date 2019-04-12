@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>图书列表</title>
+    <!-- 引入juquery -->
+    <script type="text/javascript" src="../js/jquery.min.js"></script>
+    <!-- 引入bootstrap的css、js -->
+    <script type="text/javascript" src="../js/bootstrap3/js/bootstrap.js"></script>
+    <link rel="stylesheet" href="../js/bootstrap3/css/bootstrap.css">
+    <!--引入table-->
+    <script type="text/javascript" src="../js/bootstrap-table/bootstrap-table.js"></script>
+    <link rel="stylesheet" href="../js/bootstrap-table/bootstrap-table.css">
+    <script type="text/javascript" src="../js/bootstrap-table/locale/bootstrap-table-zh-CN.js"></script>
+    <!--引入bootbox-->
+    <script type="text/javascript" src="../js/bootstrap-bootbox/bootbox.js"></script>
+    <!-- 引入日期的css、js -->
+    <link rel="stylesheet" href="../js/bootstrap-datetimepicker/css/bootstrap-datetimepicker.css">
+    <script type="text/javascript" src="../js/bootstrap-datetimepicker/js/bootstrap-datetimepicker.js"></script>
+</head>
+<body>
+<button type="button" class="btn btn-success" onclick="saveBtn()">新增</button>
+<table class="table" id="myTable"></table>
+
+</body>
+<script type="text/javascript">
+    $(function(){
+        initBook();
+    })
+    function initBook(){
+        $("#myTable").bootstrapTable({
+            toolbar: '#toolbar',
+            url: '../queryBook',
+            pagination: true,
+            pageList: [1, 2, 10, 20, 50],
+            pageNumber: 1,
+            pageSize: 1,
+            sidePagination: 'server',//分页方式：client客户端分页，server服务端分页
+            striped: true,//条纹表格
+            queryParams: function () {
+                return {
+                    page: this.pageNumber,
+                    rows: this.pageSize/*,
+                    companyselect:$("#companyselect").val(),
+                    customerselect:$("#customerselect").val()*/
+                }
+            },
+            columns:[
+                {field:"111",checkbox:true},
+                {field: "bookId", title: "图书编号"},
+                {field: "bookName", title: "图书名称"},
+                {field: "bookPrice", title: "图书价格"},
+                {field: "bookDate", title: "出版日期"},
+                {field: "typeName", title: "图书类型",formatter:function(value,row,index){
+                    return row.typeId;
+                    }},
+                {
+                    field: "tools", title: "操作", formatter: function (value, row, index) {
+                        var html = "<a href='javascript:deleteOne(" + row.bookId + ")'>删除</a>";
+                        html += "   |  ";
+                        html += "<a href='javascript:updateCustomer(" + row.bookId + ")'>修改</a>";
+                        return html;
+                    }
+                }
+            ]
+        })
+    }
+
+    var res;
+    function createAddContent(url){
+        $.ajax({
+            url:url,
+            async:false,
+            success:function(data){
+                res = data;
+            }
+        });
+        return res;
+    }
+    //单删
+    function deleteOne(bookId){
+        bootbox.confirm({
+            size: "small",
+            title:"提示",
+            message: "是否确认删除?",
+            buttons: {
+                confirm: {
+                    label: '确定',
+                    className: 'btn-success'
+                },
+                cancel: {
+                    label: '取消',
+                    className: 'btn-danger'
+                }
+            },
+            callback: function (result) {
+                if(result){
+                    //后台ajax删除
+                    $.ajax({
+                        url:"../deleteBook",
+                        type:"post",
+                        data:{bookId:bookId},
+                        success:function(){
+                            //刷新表格
+                            $("#myTable").bootstrapTable('refresh');
+                        }
+                    })
+
+                }
+            }
+        })
+    }
+
+    //打开新增弹框
+    function saveBtn(){
+        bootbox.dialog({
+            title:'新增图书',
+            message: createAddContent("../toAdd"),
+            closeButton: true,//是否显示关闭按钮
+            buttons : {
+                "success" : {
+                    "label" : "<i class='icon-ok'></i> 保存",
+                    "className" : "btn-sm btn-success",
+                    "callback" : function() {
+                        var bookName = $("#bookName").val();
+                        var bookDate = $("#bookDate").val();
+                        var bookPrice = $("#bookPrice").val();
+                        var typeId = $("#typeId").val();
+                        $.ajax({
+                            url:'../saveBook',
+                            contentType:'application/json',
+                            type:'post',
+                            data:JSON.stringify({'bookName':bookName,'bookDate':bookDate,'bookPrice':bookPrice,'typeId':typeId}),
+                            success:function(data){
+                                $("#myTable").bootstrapTable('refresh');
+                            },
+                            error:function(){
+                                alert("新增失败");
+                            }
+                        });
+                    }
+                },
+                "cancel" : {
+                    "label" : "<i class='icon-info'></i> 取消",
+                    "className" : "btn-sm btn-danger",
+                    "callback" : function() {
+
+                    }
+                }
+            }
+
+        });
+    }
+    //打开修改弹框
+    function updateCustomer(bookId){
+        bootbox.dialog({
+            title:'修改',
+            message: createAddContent("../toEdit"),
+            closeButton: true,//是否显示关闭按钮
+            buttons : {
+                "success" : {
+                    "label" : "<i class='icon-ok'></i> 保存",
+                    "className" : "btn-sm btn-success",
+                    "callback" : function() {
+                        var bookId = $("#bookId").val();
+                        var bookName = $("#bookName").val();
+                        var bookDate = $("#bookDate").val();
+                        var bookPrice = $("#bookPrice").val();
+                        var typeId = $("#typeId").val();
+                        $.ajax({
+                            url:'../updateBook',
+                            contentType:'application/json',
+                            type:'post',
+                            data:JSON.stringify({'bookId':bookId,'bookName':bookName,'bookDate':bookDate,'bookPrice':bookPrice,'typeId':typeId}),
+                            success:function(data){
+                                $("#myTable").bootstrapTable('refresh');
+                            },
+                            error:function(){
+                                alert("修改失败");
+                            }
+                        });
+                    }
+                },
+                "cancel" : {
+                    "label" : "<i class='icon-info'></i> 取消",
+                    "className" : "btn-sm btn-danger",
+                    "callback" : function() {
+
+                    }
+                }
+            }
+
+        });
+
+        //修改回显
+        $.ajax({
+            url:'../updateBook?bookId='+bookId,
+            type:'post',
+            async:false,
+            data:{},
+            success:function(data){
+                $("#bookId").val(data.bookId);
+                $("#bookName").val(data.bookName);
+                $("#bookDate").val(data.bookDate);
+                $("#bookPrice").val(data.bookPrice);
+                $("#typeId").val(data.typeId);
+            }
+        })
+    }
+
+</script>
+</html>
